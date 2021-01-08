@@ -1,4 +1,8 @@
+#30 file 8:26
 #rowdataをmacroの方に移して，区切り番号を振っていく
+import time
+t_start = time.time()
+
 import datetime
 import openpyxl as px
 from mymodule import my_round #負の値の丸め込みに使用
@@ -6,13 +10,11 @@ from mymodule import hhmmss #hhmmss>s
 from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_EVEN #floatの四捨五入
 
 xxx_name = ['001','002','003','004','005','006','007','008','009','010','011','012','013','014','015','016','017','018','019','020','021','022','023','024','025','026','027','028','029','030']
-Except_List = [6,29] 
-Except_List0 = [] #007,14,16,17,19,20,24,26,29
-ErrRow_List = []
+Except_List = [] #listの要素数が4つ揃っていないxxx #007,14,16,17,19,20,24,26,29
+ErrRow_List = [] #上のse_RowList
 
-for i in range(0,13): #range(0,30)
-    print(xxx_name[i])
-    witxl_path = './Result/001-030/Wit/1st_Wit_' + xxx_name[i] + '.xlsx'
+for i in range(0,30): #range(0,30)
+    witxl_path = './Result/001-030/1st_Wit_' + xxx_name[i] + '.xlsx'
     fxl_path = './Result/xlsx_template/failed/pre_Wit_' + xxx_name[i] + '.xlsx'
 
     wb = px.load_workbook(witxl_path)
@@ -27,18 +29,18 @@ for i in range(0,13): #range(0,30)
     wsf12 = wbf['paste-1and2']
     max_rowf = wsfM.max_row
 
-    #alt_macro.py: 生データの一部(timeとx)を'macro'へ
+    #生データの一部(timeとx)を'macro'へコピー
     for k in range(3,max_row+1): #dataは3行目から
         wsM.cell(row=k, column=2).value = wsP.cell(row=k, column=2).value #生データB列をmacroのB列へ
         wsM.cell(row=k, column=3).value = my_round.main(wsP.cell(row=k, column=9).value) #生データI列を丸めてmacroのD列へ
 
-    #find-fill-2: 'start-end'を基に探すとwbをdata_only=Trueで読み込む必要がある(数式を読んでしまう)ので，PrtScのシートから直接取ってくる
-    fill_a = px.styles.PatternFill(patternType='solid', fgColor='FFDC00', bgColor='FFDC00') #赤っぽい色に塗りつぶし
-    fill_b = px.styles.PatternFill(patternType='solid', fgColor='00DCFF', bgColor='00DCFF') #青っぽい色に塗りつぶし
-
+    #'macro'中，該当するデータに区切り番号を付与
     se_name = ['1','2','3','4'] #start-endの名前
     se_RowList = [] #区切りを把握しておく
 
+    fill_a = px.styles.PatternFill(patternType='solid', fgColor='FFDC00', bgColor='FFDC00') #赤っぽい色に塗りつぶし
+    fill_b = px.styles.PatternFill(patternType='solid', fgColor='00DCFF', bgColor='00DCFF') #青っぽい色に塗りつぶし
+    
     for l in range(0,len(se_name)): #1回目開始終了，2回目開始終了の計4つ
         for j in range(3,max_row+1):
 
@@ -51,16 +53,17 @@ for i in range(0,13): #range(0,30)
 
             if prtsc_time in raw_time: #macroのtimeに，PrtScのtimeが部分的に入っていればそのセルを塗りつぶし
                 wsM.cell(row=j, column=2).fill = fill_a
-            if prtsc_angle in raw_angle: #上記の角度ver
+            if prtsc_angle in raw_angle: #角度についても同様
                 wsM.cell(row=j, column=3).fill = fill_b
             if prtsc_time in raw_time and prtsc_angle in raw_angle:
-                wsM.cell(row=j, column=1).value = l + 1 #timeと角度が両方一致している行に区切り番号を割り振る
+                wsM.cell(row=j, column=1).value = se_name[l] #timeと角度が両方一致している行に区切り番号を割り振る
                 se_RowList.append(j) #区切りに該当する行番号をlistに格納
 
     #ここから'paste-1and2': 'macro'において1-2, 3-4に該当するデータを'paste-1and2'に切り出す
-    print(se_RowList)
-
-    try:
+    print(xxx_name[i], ':', se_RowList)
+    #が，listの要素が4つ揃っていないものがある．(上のコードが完璧でないことに起因)
+    #そのxxxを捉えて，揃えたfileからコピーする
+    try: #4つ揃っているもの
         trial_1 = se_RowList[1] - se_RowList[0] + 1 #1回目のデータ数
         trial_2 = se_RowList[3] - se_RowList[2] + 1 #2回目のデータ数
 
@@ -75,44 +78,48 @@ for i in range(0,13): #range(0,30)
             ws12.cell(row=l+6, column=10).value = wsM.cell(row=l+se_RowList[2], column=2).value
             ws12.cell(row=l+6, column=11).value = wsM.cell(row=l+se_RowList[2], column=3).value
 
-    except IndexError as e:
-        Except_List0.append(i)
+    except IndexError as e: #4つ揃っていないもの
+        print('要素数が足りてない:', e)
+        Except_List.append(i)
         ErrRow_List.append([se_RowList])
-        print(xxx_name[i],'はlistの要素数が足りてない:', e)
 
-        se_RowList_F = []
+        se_RowList_F = [] #揃ってるfileから要素数を取ってくる
         for k in se_name:
             for l in range(3, max_rowf+1):
-                rawfX = str(wsfM.cell(row=l, column=1).value)
+                rawfX = str(wsfM.cell(row=l, column=1).value) #'macro'1列目に"1,2,3,4"が記載されている
                 if rawfX == k:
-                    se_RowList_F.append(j)
+                    se_RowList_F.append(l)
 
-        trial_1 = se_RowList_F[1] - se_RowList_F[0] + 1 #1回目のデータ数
-        trial_2 = se_RowList_F[3] - se_RowList_F[2] + 1 #2回目のデータ数
+        print(xxx_name[i], '(修正)', ':', se_RowList_F)
+        trial_f1 = se_RowList_F[1] - se_RowList_F[0] + 1 #1回目のデータ数
+        trial_f2 = se_RowList_F[3] - se_RowList_F[2] + 1 #2回目のデータ数
 
-        ws12.cell(row=6, column=2).value = trial_1 #データ数をセルに記入
-        ws12.cell(row=6, column=9).value = trial_2
+        #paste-1and2を丸ごと複製
+        ws12.cell(row=6, column=2).value = trial_f1 #データ数をセルに記入
+        ws12.cell(row=6, column=9).value = trial_f2
 
-        for l in range(trial_1): #1回目
-            ws12.cell(row=l+6, column=3).value = ws12.cell(row=l+6, column=3).value
-            ws12.cell(row=l+6, column=4).value = ws12.cell(row=l+6, column=4).value
+        for t1 in range(trial_f1): #1回目
+            ws12.cell(row=t1+6, column=3).value = wsf12.cell(row=t1+6, column=3).value
+            ws12.cell(row=t1+6, column=4).value = wsf12.cell(row=t1+6, column=4).value
 
-        for l in range(trial_2): #2回目
-            ws12.cell(row=l+6, column=10).value = ws12.cell(row=l+6, column=10).value
-            ws12.cell(row=l+6, column=11).value = ws12.cell(row=l+6, column=11).value
+        for t2 in range(trial_f2): #2回目
+            ws12.cell(row=t2+6, column=10).value = wsf12.cell(row=t2+6, column=10).value
+            ws12.cell(row=t2+6, column=11).value = wsf12.cell(row=t2+6, column=11).value
         
-        wb.save(witxl_path)
+        wb.save(witxl_path) #Errfileのsave
 
-        if i != Except_List[-1]:
+        if xxx_name[i] != '030': #xxx=030なら終了
             continue
         else:
             break
 
-    wb.save(witxl_path)
+    wb.save(witxl_path) #正常fileのsave
 
-for m in range(0,len(Except_List)):
-    n = Except_List[m]
-    print(xxx_name[n], 'のlistは', ErrRow_List[n])
+for el in range(len(Except_List)):
+    print(xxx_name[Except_List[el]], 'のlistは', ErrRow_List[el])
+
+t_end = time.time()
+print(t_end-t_start, '要しました')
 '''
 001
 [2713, 5629, 7974, 9688]
