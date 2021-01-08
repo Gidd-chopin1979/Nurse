@@ -1,4 +1,7 @@
 #wit dataを0.1s区切りの綺麗な並びにしてcsvで出力
+import time
+t_start = time.time()
+
 import os
 import csv
 import math
@@ -8,11 +11,13 @@ from mymodule import hhmmss #hhmmss>s
 
 xxx_name = ['001','002','003','004','005','006','007','008','009','010','011','012','013','014','015','016','017','018','019','020','021','022','023','024','025','026','027','028','029','030']
 
-for i in range(6,30):
+for i in range(0,30):
     for j in [1,2]: #1つのxxxにつき2つ(1回目2回目)
         print(xxx_name[i],'_',j)
+        xint_list = [] #存在しない切り捨て整数
+        xrow_list = [] #空欄の行
 
-        witxl_path = './Result/001-030/Wit/1st_Wit_' + xxx_name[i] + '.xlsx'
+        witxl_path = './Result/001-030/1st_Wit_' + xxx_name[i] + '.xlsx'
         fxl_path = './Result/xlsx_template/failed/pre_Wit_' + xxx_name[i] + '.xlsx'
 
         tri_temp_path = './Result/xlsx_template/Wit-TRIAS.xlsx'
@@ -62,8 +67,9 @@ for i in range(6,30):
             try:
                 rb_ini = 6 + D_list.index(l) #6行目からスタート
                 rj_ini = l*10 + 6 #j列は必ず10個ずつ
-            except ValueError as ve:
-                print(max(D_list),ve)
+            except ValueError as ve: #""is not in listはlist.index("")のerror
+                #print(ve)
+                xint_list.append(l)
 
             if l_ilis >= 10: #その整数の個数が10個もしくはそれ以上ならそのままコピー(10で絶対とまるので以上でも問題ない)
                 for r in range(10): #i=0の時，range(6,15+1)
@@ -101,8 +107,9 @@ for i in range(6,30):
                 j_val = float(wsA.cell(row=m+6,column=10).value)
                 wsA.cell(row=m+6,column=9).value = j_val * sl + icept #I6から=J6*$I$2+$I$3
             except TypeError as e:
-                print(m,':',e)
-        
+                #print(m,'行目は，欠番か最後の値なので空欄です．')
+                xrow_list.append(m)
+
         #HIを5から最後?までcsvで保存 シートを作ってそれをcsvとして保存する
         wbT.create_sheet(title='csv', index=1)
         ws_csv = wbT['csv']
@@ -119,5 +126,15 @@ for i in range(6,30):
             #writer.writerow([str(acell.value or '') for acell in row]) #セルの値がNone, 空, 0, falseなら''
         f.close()
         
+        #欠番の整数をコピー
+        print(xxx_name[i],'_',j,'には',xint_list,'が存在しません．')
+        wsA.cell(row=2,column=10).value = xint_list
+
+        #空欄の行をコピー
+        print(xxx_name[i],'_',j,'の','行目は，欠番か最後の値なので空欄です．')
+        wsA.cell(row=3,column=10).value = xrow_list
+
         wbT.save(tri_path)
-        
+
+t_end = time.time()
+print(t_end-t_start, '秒要しました')    
