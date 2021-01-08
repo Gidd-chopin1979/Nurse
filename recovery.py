@@ -1,12 +1,16 @@
+#30 file 7:45
 #画像のパラメター(角度・時間)を，過去fileから，templateを変えるなどして新規作成したfileに移す
+import time
+t_start = time.time()
+
 import openpyxl as px
 from mymodule import my_round
 
 xxx_name = ['001','002','003','004','005','006','007','008','009','010','011','012','013','014','015','016','017','018','019','020','021','022','023','024','025','026','027','028','029','030']
 
-for i in range(0,1):
+for i in range(0,30):
     print(xxx_name[i])
-    witxl_path = './Result/001-030/Wit/1st_Wit_' + xxx_name[i] + '.xlsx'
+    witxl_path = './Result/001-030/1st_Wit_' + xxx_name[i] + '.xlsx'
     fxl_path = './Result/xlsx_template/failed/pre_Wit_' + xxx_name[i] + '.xlsx'
 
     wbC = px.load_workbook(witxl_path)
@@ -30,3 +34,6 @@ for i in range(0,1):
         wsC['V5'].value = wsF['V5'].value 
         
     wbC.save(witxl_path)
+
+t_end = time.time()
+print(t_end-t_start, '要しました')
